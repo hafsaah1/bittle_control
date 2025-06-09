@@ -7,7 +7,7 @@ import time
 #
 # vvv THIS IS THE LINE YOU NEED TO CHANGE vvv
 #
-SERIAL_PORT = '/dev/tty.BittleB3_SSP' 
+SERIAL_PORT = 'COM6' 
 #
 # ^^^ THIS IS THE LINE YOU NEED TO CHANGE ^^^
 #
@@ -21,6 +21,16 @@ blue_upper = np.array([130, 255, 255])
 # HSV values for Green
 green_lower = np.array([40, 70, 70])
 green_upper = np.array([80, 255, 255])
+
+red_lower = np.array([0, 100, 100])
+red_upper = np.array([10, 255, 255])
+
+white_lower = np.array([0, 0, 200])
+white_upper = np.array([180, 30, 255])
+
+yellow_lower = np.array([20, 100, 100])
+yellow_upper = np.array([30, 255, 255])
+
 
 def connect_to_bittle():
     """Tries to connect to the serial port."""
@@ -66,7 +76,19 @@ def main():
             
             blue_contours, _ = cv2.findContours(blue_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             green_contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+         
+            red_mask = cv2.inRange(hsv, red_lower, red_upper)
+         
+            red_contours, _ = cv2.findContours(red_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+           
+            white_mask = cv2.inRange(hsv, white_lower, white_upper)
+
+            white_contours, _ = cv2.findContours(white_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             
+            yellow_mask = cv2.inRange(hsv, yellow_lower, yellow_upper)
+            yellow_contours, _ = cv2.findContours(yellow_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+
             current_time = time.time()
             command = None
             
@@ -76,6 +98,15 @@ def main():
             elif green_contours and cv2.contourArea(max(green_contours, key=cv2.contourArea)) > 500:
                 command = b'ktrR\n' # Command: Trot Right
                 cv2.putText(frame, "COMMAND: RIGHT", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            elif red_contours and cv2.contourArea(max(red_contours, key=cv2.contourArea)) > 500:
+                command = b'kbkF\n' # Command: Backward
+                cv2.putText(frame, "COMMAND: BACKWARD", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            elif white_contours and cv2.contourArea(max(white_contours, key=cv2.contourArea)) > 500:
+                command = b'krest\n' # Command: Rest
+                cv2.putText(frame, "COMMAND: REST", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (128, 0, 128), 2)
+            elif yellow_contours and cv2.contourArea(max(yellow_contours, key=cv2.contourArea)) > 500:
+                command = b'kwkF\n' # Command: Walk Forward
+                cv2.putText(frame, "COMMAND: WALK FORWARD", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
             else:
                 command = b'kbalance\n' # Command: Balance/Stop
                 cv2.putText(frame, "COMMAND: STANDBY", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
