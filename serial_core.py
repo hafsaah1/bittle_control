@@ -89,27 +89,27 @@ def main():
             # The order matters. The first color it finds in this list is the command it will use for that frame.
             
             if red_contours and cv2.contourArea(max(red_contours, key=cv2.contourArea)) > 500:
-                command = b'kwkF\n'  # Walk Forward
-                cv2.putText(frame, "COMMAND: FORWARD", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                command = b'kwkF\n'  # Command: Walk Forward
+                cv2.putText(frame, "COMMAND: FORWARD (Red)", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
             
             elif yellow_contours and cv2.contourArea(max(yellow_contours, key=cv2.contourArea)) > 500:
-                command = b'ktrR\n'  # Trot Right
-                cv2.putText(frame, "COMMAND: RIGHT", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+                command = b'ktrR\n'  # Command: Trot Right
+                cv2.putText(frame, "COMMAND: RIGHT (Yellow)", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
             elif blue_contours and cv2.contourArea(max(blue_contours, key=cv2.contourArea)) > 500:
-                command = b'ktrL\n'  # Trot Left
-                cv2.putText(frame, "COMMAND: LEFT", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+                command = b'ktrL\n'  # Command: Trot Left
+                cv2.putText(frame, "COMMAND: LEFT (Blue)", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
             
             elif green_contours and cv2.contourArea(max(green_contours, key=cv2.contourArea)) > 500:
-                command = b'kbkF\n'  # We use the confirmed command for backward
-                cv2.putText(frame, "COMMAND: BACKWARDS", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                command = b'kbkF\n'  # Command: Backward
+                cv2.putText(frame, "COMMAND: BACKWARDS (Green)", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             
             elif white_contours and cv2.contourArea(max(white_contours, key=cv2.contourArea)) > 500:
-                command = b'krest\n' # Rest
-                cv2.putText(frame, "COMMAND: REST", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                command = b'krest\n' # Command: Rest
+                cv2.putText(frame, "COMMAND: REST (White)", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 200, 200), 2)
 
             else:
-                command = b'kbalance\n' # Balance/Stop
+                command = b'kbalance\n' # Command: Balance/Stop
                 cv2.putText(frame, "COMMAND: STANDBY", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (128, 128, 128), 2)
 
             # Send command to Bittle at a controlled rate
