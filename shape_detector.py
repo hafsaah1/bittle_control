@@ -1,4 +1,3 @@
-# shape_detector.py
 import cv2
 import numpy as np
 
@@ -33,13 +32,13 @@ while True:
     ret, frame = cap.read()
     if not ret:
         break
-        
+    frame_5x5 = cv2.resize(frame, (5,5))    
     # Convert the frame to grayscale and then to a binary (black & white) image
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(frame_5x5, cv2.COLOR_BGR2GRAY)
     # Blur the image to reduce noise
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    #blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     # Use a threshold to create a pure black and white image
-    _, threshold = cv2.threshold(blurred, 127, 255, cv2.THRESH_BINARY_INV)
+    _, threshold = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
 
     # Find contours (outlines) in the binary image
     contours, _ = cv2.findContours(threshold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
