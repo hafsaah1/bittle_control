@@ -1,35 +1,35 @@
 import cv2
 import numpy as np
-import serial  # <-- This script uses 'serial', not 'pyBittle'
+import serial
 import time
 
 # --- Bittle Configuration ---
-#
-# vvv THIS IS THE LINE YOU NEED TO CHANGE vvv
-#
-SERIAL_PORT = 'COM6' 
-#
-# ^^^ THIS IS THE LINE YOU NEED TO CHANGE ^^^
-#
+SERIAL_PORT = '/dev/tty.BittleB3_SSP' 
 BAUD_RATE = 115200
 
 # --- Color Detection Configuration (HSV Color Space) ---
-# HSV values for Blue
+## ADDED: Definitions for all your colors ##
+# For Red (we check two ranges for better accuracy)
+lower_red_1 = np.array([0, 100, 100])
+upper_red_1 = np.array([10, 255, 255])
+lower_red_2 = np.array([170, 100, 100])
+upper_red_2 = np.array([180, 255, 255])
+
+# For Yellow
+yellow_lower = np.array([20, 100, 100])
+yellow_upper = np.array([30, 255, 255])
+
+# For Blue
 blue_lower = np.array([90, 100, 100])
 blue_upper = np.array([130, 255, 255])
 
-# HSV values for Green
+# For Green
 green_lower = np.array([40, 70, 70])
 green_upper = np.array([80, 255, 255])
 
-red_lower = np.array([0, 100, 100])
-red_upper = np.array([10, 255, 255])
-
-white_lower = np.array([0, 0, 200])
-white_upper = np.array([180, 30, 255])
-
-yellow_lower = np.array([20, 100, 100])
-yellow_upper = np.array([30, 255, 255])
+# For White
+white_lower = np.array([0, 0, 180])
+white_upper = np.array([180, 40, 255])
 
 
 def connect_to_bittle():
@@ -37,22 +37,18 @@ def connect_to_bittle():
     try:
         ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
         print(f"Successfully connected to Bittle on {SERIAL_PORT}")
-        time.sleep(2) # Wait for the connection to establish
-        ser.write(b'kbalance\n') # Command Bittle to stand up at the start
+        time.sleep(2)
+        ser.write(b'kbalance\n')
         print("Bittle standing by.")
         return ser
     except serial.SerialException as e:
-        print(f"Error: Could not connect to {SERIAL_PORT}. Please check:")
-        print("1. If the port name is correct.")
-        print("2. If Bittle is powered on and connected in your Mac's Bluetooth settings.")
-        print("3. If any other program is using the port.")
-        print(f"Details: {e}")
+        print(f"Error: Could not connect to {SERIAL_PORT}. Details: {e}")
         return None
 
 def main():
     bittle_serial = connect_to_bittle()
     if not bittle_serial:
-        return # Exit if connection failed
+        return
 
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
@@ -61,7 +57,7 @@ def main():
         return
 
     last_command_time = time.time()
-    command_interval = 1.0 # Send a command every 1 second to avoid spamming
+    command_interval = 1.0
 
     try:
         while True:
@@ -71,51 +67,56 @@ def main():
             
             hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
             
-            blue_mask = cv2.inRange(hsv, blue_lower, blue_upper)
-            green_mask = cv2.inRange(hsv, green_lower, green_upper)
-            
-            blue_contours, _ = cv2.findContours(blue_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            green_contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-         
-            red_mask = cv2.inRange(hsv, red_lower, red_upper)
-         
-            red_contours, _ = cv2.findContours(red_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-           
-            white_mask = cv2.inRange(hsv, white_lower, white_upper)
-
-            white_contours, _ = cv2.findContours(white_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            ## ADDED: Masks and contours for all 5 colors ##
+            mask_r1 = cv2.inRange(hsv, lower_red_1, upper_red_1)
+            mask_r2 = cv2.inRange(hsv, lower_red_2, upper_red_2)
+            red_mask = mask_r1 + mask_r2
             
             yellow_mask = cv2.inRange(hsv, yellow_lower, yellow_upper)
+            blue_mask = cv2.inRange(hsv, blue_lower, blue_upper)
+            green_mask = cv2.inRange(hsv, green_lower, green_upper)
+            white_mask = cv2.inRange(hsv, white_lower, white_upper)
+            
+            red_contours, _ = cv2.findContours(red_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             yellow_contours, _ = cv2.findContours(yellow_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-
-            current_time = time.time()
+            blue_contours, _ = cv2.findContours(blue_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            green_contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            white_contours, _ = cv2.findContours(white_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            
             command = None
             
-            if blue_contours and cv2.contourArea(max(blue_contours, key=cv2.contourArea)) > 500:
-                command = b'ktrL\n' # Command: Trot Left
-                cv2.putText(frame, "COMMAND: LEFT", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-            elif green_contours and cv2.contourArea(max(green_contours, key=cv2.contourArea)) > 500:
-                command = b'ktrR\n' # Command: Trot Right
-                cv2.putText(frame, "COMMAND: RIGHT", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            elif red_contours and cv2.contourArea(max(red_contours, key=cv2.contourArea)) > 500:
-                command = b'kbkF\n' # Command: Backward
-                cv2.putText(frame, "COMMAND: BACKWARD", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-            elif white_contours and cv2.contourArea(max(white_contours, key=cv2.contourArea)) > 500:
-                command = b'krest\n' # Command: Rest
-                cv2.putText(frame, "COMMAND: REST", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (128, 0, 128), 2)
+            ## MODIFIED: The if/elif/else block now matches your new requirements ##
+            # The order matters. The first color it finds in this list is the command it will use for that frame.
+            
+            if red_contours and cv2.contourArea(max(red_contours, key=cv2.contourArea)) > 500:
+                command = b'kwkF\n'  # Walk Forward
+                cv2.putText(frame, "COMMAND: FORWARD", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            
             elif yellow_contours and cv2.contourArea(max(yellow_contours, key=cv2.contourArea)) > 500:
-                command = b'kwkF\n' # Command: Walk Forward
-                cv2.putText(frame, "COMMAND: WALK FORWARD", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+                command = b'ktrR\n'  # Trot Right
+                cv2.putText(frame, "COMMAND: RIGHT", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+
+            elif blue_contours and cv2.contourArea(max(blue_contours, key=cv2.contourArea)) > 500:
+                command = b'ktrL\n'  # Trot Left
+                cv2.putText(frame, "COMMAND: LEFT", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+            
+            elif green_contours and cv2.contourArea(max(green_contours, key=cv2.contourArea)) > 500:
+                command = b'kbkF\n'  # We use the confirmed command for backward
+                cv2.putText(frame, "COMMAND: BACKWARDS", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            
+            elif white_contours and cv2.contourArea(max(white_contours, key=cv2.contourArea)) > 500:
+                command = b'krest\n' # Rest
+                cv2.putText(frame, "COMMAND: REST", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
             else:
-                command = b'kbalance\n' # Command: Balance/Stop
-                cv2.putText(frame, "COMMAND: STANDBY", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                command = b'kbalance\n' # Balance/Stop
+                cv2.putText(frame, "COMMAND: STANDBY", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (128, 128, 128), 2)
 
             # Send command to Bittle at a controlled rate
-            if command and (current_time - last_command_time > command_interval):
+            if command and (time.time() - last_command_time > command_interval):
                 print(f"Sending command: {command.decode().strip()}")
                 bittle_serial.write(command)
-                last_command_time = current_time
+                last_command_time = time.time()
 
             cv2.imshow("Bittle Vision Control", frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
