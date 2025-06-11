@@ -19,11 +19,11 @@ def get_shape_name(contour):
     # It will print the score for any large shape it finds.
     print(f"Detected a shape with circularity score: {circularity:.2f}")
 
-    approx = cv2.approxPolyDP(contour, 0.02 * perimeter, True)
+    approx = cv2.approxPolyDP(contour, 0.03 * perimeter, True)
     num_vertices = len(approx)
 
     
-    if circularity > 0.70 and num_vertices > 8: 
+    if circularity > 0.75: 
         return "Circle"
     
 
