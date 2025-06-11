@@ -8,14 +8,12 @@ SERIAL_PORT = '/dev/tty.BittleB3_SSP'
 BAUD_RATE = 115200
 
 # --- Action Definitions ---
-# This is our program for drawing a square.
-# We will repeat the "walk forward, turn 90 degrees" action 4 times.
-# Based on your calibration, we'll try using 2 'ktrL' commands for a 90-degree turn.
+# MODIFIED: This is your new requested sequence with three turns.
 SQUARE_SEQUENCE = [
-    b'kwkF\n', b'ktrL\n', b'ktrL\n',  # Side 1 & Corner 1
-    b'kwkF\n', b'ktrL\n', b'ktrL\n',  # Side 2 & Corner 2
-    b'kwkF\n', b'ktrL\n', b'ktrL\n',  # Side 3 & Corner 3
-    b'kwkF\n', b'ktrL\n', b'ktrL\n'   # Side 4 & Corner 4
+    b'kwkF\n', b'kwkF\n',          # Two steps forward
+    b'ktrL\n', b'ktrL\n', b'ktrL\n',  # Three turns left
+    b'kwkF\n', b'kwkF\n',   b'kwkF\n',          # Two steps forward
+    b'ktrL\n', b'ktrL\n', b'ktrL\n'   # Three turns left
 ]
 
 def connect_to_bittle():
@@ -41,7 +39,7 @@ def main():
         bittle_serial.write(b'kbalance\n')
         time.sleep(2)
 
-        print(f"Executing square sequence ({len(SQUARE_SEQUENCE)} steps)...")
+        print(f"Executing your sequence ({len(SQUARE_SEQUENCE)} steps)...")
         
         # Loop through each command in our sequence
         for i, command in enumerate(SQUARE_SEQUENCE):
@@ -50,7 +48,7 @@ def main():
             # You can adjust this time to make the actions smoother
             time.sleep(2.0)
         
-        print("\n--- Square Complete! ---")
+        print("\n--- Sequence Complete! ---")
         
     finally:
         # End by making the Bittle rest
