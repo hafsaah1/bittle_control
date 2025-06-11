@@ -1,3 +1,4 @@
+# simple_shape_finder.py
 import cv2
 import numpy as np
 
@@ -13,13 +14,10 @@ def get_shape_name(contour):
     if num_vertices == 3:
         return "Triangle"
     elif num_vertices == 4:
-        # To be more precise, you could check the aspect ratio
-        # to distinguish between a square and a rectangle
         return "Square"
-    elif num_vertices == 5:
-        return "Pentagon"
     else:
-        return "Circle or Complex Shape"
+        # For simplicity, we'll just focus on triangles and squares for now
+        return None
 
 # --- Main Program ---
 cap = cv2.VideoCapture(0)
@@ -28,39 +26,60 @@ if not cap.isOpened():
     print("Error: Could not open camera.")
     exit()
 
+print("\n--- Starting Simple Shape Finder ---")
+print("INFO: Hold a paper with a dark, clear shape INSIDE the green box.")
+
 while True:
     ret, frame = cap.read()
     if not ret:
         break
-    frame_5x5 = cv2.resize(frame, (5,5))    
-    # Convert the frame to grayscale and then to a binary (black & white) image
-    gray = cv2.cvtColor(frame_5x5, cv2.COLOR_BGR2GRAY)
-    # Blur the image to reduce noise
-    #blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    # Use a threshold to create a pure black and white image
-    _, threshold = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
+        
+    # --- Define a Region of Interest (ROI) ---
+    frame_height, frame_width, _ = frame.shape
+    roi_size = 350 # You can make this box bigger or smaller
+    x1 = (frame_width - roi_size) // 2
+    y1 = (frame_height - roi_size) // 2
+    x2 = x1 + roi_size
+    y2 = y1 + roi_size
+    
+    # Draw the green ROI box on the main frame for guidance
+    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+    
+    # Create a separate, smaller image that is just the inside of the box
+    roi = frame[y1:y2, x1:x2]
 
-    # Find contours (outlines) in the binary image
+    # --- We will now ONLY process the 'roi' image ---
+    gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    
+    # Use a simple threshold. This value might need tuning!
+    # Try changing 127 to 100 or 150 if detection is not working.
+    _, threshold = cv2.threshold(blurred, 127, 255, cv2.THRESH_BINARY_INV)
+
+    # Find contours ONLY within the ROI
     contours, _ = cv2.findContours(threshold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
+    # Loop through all found contours
     for cnt in contours:
-        # Only process contours of a certain size to ignore noise
-        if cv2.contourArea(cnt) > 500:
+        # Make sure the contour is of a decent size
+        if cv2.contourArea(cnt) > 400:
             shape_name = get_shape_name(cnt)
             
-            # Find the center of the contour to place the text
-            M = cv2.moments(cnt)
-            if M["m00"] != 0:
-                cx = int(M["m10"] / M["m00"])
-                cy = int(M["m01"] / M["m00"])
-                
-                # Draw the contour and the shape name on the original frame
-                cv2.drawContours(frame, [cnt], -1, (0, 255, 0), 2)
-                cv2.putText(frame, shape_name, (cx - 40, cy), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+            # If we identified a shape, draw it
+            if shape_name:
+                M = cv2.moments(cnt)
+                if M["m00"] != 0:
+                    # Get the center of the shape within the ROI
+                    cx_roi = int(M["m10"] / M["m00"])
+                    cy_roi = int(M["m01"] / M["m00"])
+                    
+                    # Calculate the center on the MAIN frame to draw the text
+                    cx_main = cx_roi + x1
+                    cy_main = cy_roi + y1
+                    
+                    cv2.putText(frame, shape_name, (cx_main - 40, cy_main), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
-    cv2.imshow("Shape Detector", frame)
-    # You can also uncomment the line below to see the black & white thresholded view
-    # cv2.imshow("Threshold", threshold)
+    cv2.imshow("Shape Finder", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
