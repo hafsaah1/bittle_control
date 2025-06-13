@@ -20,7 +20,7 @@ try:
         dsrdtr=True  # <-- THE OTHER NEW SETTING
     )
     # ==========================================================
-    
+    # conenct to shape : 
     print("SUCCESS: Connected.")
     time.sleep(2)
 
